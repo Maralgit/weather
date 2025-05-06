@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,7 +35,14 @@ export default function RootLayout({
             rel="stylesheet"
           />
         </head>
-        {children}
+        <main>{children}</main>
+        <Toaster
+          toastOptions={{
+            classNames: {
+              description: "text-red-400", // ← Description-ийн өнгө өөрчлөгдөх газар
+            },
+          }}
+        />
       </body>
     </html>
   );
