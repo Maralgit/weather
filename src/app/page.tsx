@@ -3,13 +3,26 @@ import { useEffect, useState } from "react";
 import { getWeatherByCity, getForecastByCity } from "./api/weather";
 import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
-import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { addDays, format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
+import { DateRange } from "react-day-picker"
 
-export default function Home() {
+import { cn } from "@/lib/utils"
+import { toast } from "sonner"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+export default function Home({className,}:React.HTMLAttributes<HTMLDivElement>) {
   const [city, setCity] = useState("Улаанбаатар");
   const [weather, setWeather] = useState<any>(null);
   const [forecast, setForecast] = useState<any[]>([]);
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    from: new Date(2025, 5, 1),
+    to: addDays(new Date(2025, 5, 1), 0)});
 
   const fetchWeather = async () => {
     try {
@@ -19,7 +32,20 @@ export default function Home() {
       const forecastData = await getForecastByCity(city);
       console.log(forecastData)
 
-      const filteredForecast = forecastData.list.filter((_: any, index: number) => index % 8 === 0);
+      const filteredForecast = forecastData.list.filter((item: any) => {
+        if(!date?.from || !date?.to) return false;
+        const itemDate = new Date(item.dt_txt);
+        
+        const fromDate = new Date(date.from);
+        const toDate = new Date(date.to);
+        
+        const isInRange =
+          itemDate >= new Date(fromDate.setHours(0, 0, 0, 0)) &&
+          itemDate <= new Date(toDate.setHours(23, 59, 59, 999));
+
+        const isNoon = itemDate.getHours() === 12;
+        return isInRange && isNoon;
+      });
       console.log(filteredForecast)
       
       setForecast(filteredForecast);
@@ -37,7 +63,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchWeather();
-  }, []);
+  }, [date]);
 
   return (
     
@@ -79,23 +105,70 @@ export default function Home() {
               <p>Уншиж байна...</p>
             )}
           </div>
-          <div className="w-[250px]">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border"
-            />
-          </div>
         </div>
-        <div className="w-[1200px] h-[600px] flex flex-wrap gap-4 bg-gray-400/60 rounded-3xl ml-10 p-10 text-white">
-          {forecast.map((item, index) => (
-            <div key={index} className="w-[200px] h-[300px] bg-white/60 rounded-xl p-5 text-black text-xl">
-              <p className="font-semibold p-2">{item.dt_txt.split(" ")[0]}</p>
-              <p className="pb-2">{item.weather[0].description}</p>
-              <p>{item.main.temp}°C</p>
-            </div>
-          ))}
+        <div className="w-[1200px] h-[600px] bg-gray-400/60 rounded-3xl ml-10 p-10 space-y-5">
+          <div className={cn("grid gap-2", className)}>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-[300px] justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon />
+                  {date?.from ? (
+                    date.to ? (
+                      <>
+                        {format(date.from, "LLL dd, y")} -{" "}
+                        {format(date.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(date.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from}
+                  selected={date}
+                  onSelect={setDate}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            {forecast.length > 0 ? (
+              forecast.map((item, index) => {
+                const date = new Date(item.dt_txt);
+                const day = format(date, "MMM dd");
+                const time = format(date, "HH:mm");
+
+                return (
+                  <div
+                    key={index}
+                    className="w-[200px] h-[300px] bg-white/60 rounded-xl p-5 text-black text-xl"
+                  >
+                    <p className="font-semibold p-2">{day}</p>
+                    <p className="text-sm text-gray-700">{time}</p>
+                    <p className="pb-2">{item.weather[0].description}</p>
+                    <p>{item.main.temp}°C</p>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-white text-xl">Сонгосон өдөрт таарах мэдээлэл алга байна.</p>
+            )}
+          </div>
+
         </div>
       </div>
     </div>

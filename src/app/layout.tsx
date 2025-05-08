@@ -29,11 +29,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <head>
-          {/* Remix icon CDN */}
-          <link
+          {<link
             href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
             rel="stylesheet"
-          />
+          />}
+          
         </head>
         <main>{children}</main>
         <Toaster
